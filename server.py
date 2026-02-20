@@ -6,7 +6,7 @@ then runs:  download → ffmpeg → Whisper → merge → PDF/CSV compilation.
 
 Usage:
     source .venv/bin/activate
-    python server.py            # listens on http://0.0.0.0:5000
+    python server.py            # listens on http://0.0.0.0:5001
 """
 
 import json
@@ -267,5 +267,5 @@ def api_download(job_id, filename):
 if __name__ == "__main__":
     Path("outputs").mkdir(exist_ok=True)
     Path("tmp_inputs").mkdir(exist_ok=True)
-    print("Class Transcriber backend starting on http://0.0.0.0:5000")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    print("Class Transcriber backend starting on http://0.0.0.0:5001")
+    app.run(host="0.0.0.0", port=5001, debug=True)

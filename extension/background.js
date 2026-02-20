@@ -8,7 +8,7 @@ function log(...args) { if (VERBOSE) console.log("[CT:bg]", ...args); }
 // --------------- defaults ---------------
 
 const DEFAULT_OPTIONS = {
-  backendUrl: "http://localhost:5000",
+  backendUrl: "http://localhost:5001",
   privacyMode: "names",
   whisperModel: "medium",
 };
@@ -226,6 +226,10 @@ async function startTranscription() {
   try {
     // 1 — Forum data
     await setState({ status: "fetching_data", error: null, files: null, jobId: null, backendMessage: null });
+    // Show progress widget (small icon) on page so user sees feedback after popup closes
+    try {
+      chrome.tabs.sendMessage(st.tabId, { type: "SHOW_PROGRESS_UI" });
+    } catch (_) { /* tab may have closed */ }
     const forum = await fetchForumData(st.tabId, st.classId);
     const sessionTitle = forum.classJson?.title || `Session ${st.classId}`;
     await setState({ classInfo: { sessionTitle } });

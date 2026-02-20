@@ -49,7 +49,7 @@ async function render() {
 
   // Populate saved options
   if (options) {
-    $("#backend-url").value  = options.backendUrl  || "http://localhost:5000";
+    $("#backend-url").value  = options.backendUrl  || "http://localhost:5001";
     $("#privacy-mode").value = options.privacyMode || "names";
     $("#whisper-model").value = options.whisperModel || "medium";
   }
@@ -97,7 +97,7 @@ async function render() {
   // ---------- files ----------
   if (status === "complete" && state.files) {
     show("files-section");
-    const base = (options?.backendUrl || "http://localhost:5000").replace(/\/+$/, "");
+    const base = (options?.backendUrl || "http://localhost:5001").replace(/\/+$/, "");
     const list = $("#file-list");
     list.innerHTML = "";
     [...(state.files.pdfs || []), ...(state.files.csvs || [])].forEach((name) => {

@@ -60,7 +60,7 @@ From the project root:
 ```bash
 source .venv/bin/activate          # or create the venv first — see below
 pip install -r requirements.txt    # includes flask + flask-cors
-python server.py                   # starts on http://localhost:5000
+python server.py                   # starts on http://localhost:5001
 ```
 
 If you don't have the venv yet:
@@ -93,7 +93,7 @@ python server.py
 
 | Option        | Values                    | Default  | Notes                                       |
 |---------------|---------------------------|----------|---------------------------------------------|
-| Backend URL   | any URL                   | `http://localhost:5000` | Change if you host the backend elsewhere |
+| Backend URL   | any URL                   | `http://localhost:5001` | Change if you host the backend elsewhere |
 | Privacy mode  | `names` / `ids` / `both`  | `names`  | `both` generates two file sets              |
 | Whisper model | `small` / `medium` / `large` | `medium` | Larger = more accurate but much slower   |
 

@@ -22,3 +22,7 @@ build/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Backend job outputs (generated files)
+outputs/
+tmp_inputs/
