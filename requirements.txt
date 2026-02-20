@@ -1,0 +1,9 @@
+streamlit==1.38.0
+openai-whisper==20231117
+pydub==0.25.1
+requests==2.31.0
+iso8601==2.1.0
+reportlab==4.2.2
+tqdm==4.66.4
+numpy==1.26.4
+torch>=2.1.0
