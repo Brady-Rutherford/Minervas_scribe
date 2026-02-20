@@ -7,3 +7,5 @@ reportlab==4.2.2
 tqdm==4.66.4
 numpy==1.26.4
 torch>=2.1.0
+flask>=3.0
+flask-cors>=4.0

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=360">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+<div id="app">
+
+  <div class="header">
+    <h1>Class Transcriber</h1>
+  </div>
+
+  <!-- no class detected -->
+  <div id="no-class" class="card notice">
+    <p>Navigate to a Forum class page to get started.</p>
+    <p class="hint">e.g. forum.minerva.edu/app/courses/…/classes/…</p>
+  </div>
+
+  <!-- detected class info -->
+  <div id="class-info" class="card" hidden>
+    <div class="label">Detected Class</div>
+    <div id="class-title" class="value">—</div>
+    <div id="class-id-display" class="value-sm">ID: —</div>
+  </div>
+
+  <!-- options -->
+  <div id="options-section" class="card" hidden>
+    <div class="field">
+      <label for="backend-url">Backend URL</label>
+      <input id="backend-url" type="text" value="http://localhost:5000" spellcheck="false">
+    </div>
+    <div class="row">
+      <div class="field half">
+        <label for="privacy-mode">Privacy</label>
+        <select id="privacy-mode">
+          <option value="names">Names</option>
+          <option value="ids">IDs only</option>
+          <option value="both">Both</option>
+        </select>
+      </div>
+      <div class="field half">
+        <label for="whisper-model">Model</label>
+        <select id="whisper-model">
+          <option value="small">Small</option>
+          <option value="medium" selected>Medium</option>
+          <option value="large">Large</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- action -->
+  <div id="action-section" hidden>
+    <button id="start-btn" class="btn-primary">Start Transcription</button>
+  </div>
+
+  <!-- status / progress -->
+  <div id="status-section" class="card" hidden>
+    <div class="label">Status</div>
+    <div id="status-text" class="status-msg">—</div>
+    <div class="progress-track"><div id="progress-fill" class="progress-bar"></div></div>
+  </div>
+
+  <!-- file downloads -->
+  <div id="files-section" class="card" hidden>
+    <div class="label">Downloads</div>
+    <div id="file-list"></div>
+  </div>
+
+  <!-- error -->
+  <div id="error-section" class="card card-error" hidden>
+    <div class="label">Error</div>
+    <div id="error-text"></div>
+    <button id="retry-btn" class="btn-secondary">Reset</button>
+  </div>
+
+</div>
+<script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Class Transcriber",
+  "version": "1.0.0",
+  "description": "Automatically transcribe Minerva Forum class sessions with zero manual steps.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "activeTab",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://forum.minerva.edu/*",
+    "http://localhost/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://forum.minerva.edu/app/courses/*/sections/*/classes/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Class Transcriber"
+  }
+}
