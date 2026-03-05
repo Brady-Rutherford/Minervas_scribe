@@ -202,6 +202,17 @@ async function checkJobStatus() {
       chrome.alarms.clear("poll_job");
       await chrome.storage.local.remove("activeJob");
       await setState({ status: "complete", files: data.files, backendMessage: "Transcription complete!" });
+      const st = await getState();
+      const opts = await getOptions();
+      await saveToHistory({
+        id: `job_${activeJob.jobId}`,
+        classId: st.classId,
+        sessionTitle: st.classInfo?.sessionTitle || `Session ${st.classId}`,
+        completedAt: new Date().toISOString(),
+        files: data.files,
+        backendUrl: activeJob.backendUrl,
+        jobId: activeJob.jobId,
+      });
     } else if (data.status === "error") {
       chrome.alarms.clear("poll_job");
       await chrome.storage.local.remove("activeJob");
@@ -210,6 +221,17 @@ async function checkJobStatus() {
   } catch (err) {
     log("Poll error (will retry):", err.message);
   }
+}
+
+// --------------- history persistence ---------------
+
+async function saveToHistory(jobData) {
+  const existing = await chrome.storage.local.get("transcription_history");
+  const history = existing.transcription_history || [];
+  history.unshift(jobData);
+  if (history.length > 50) history.pop();
+  await chrome.storage.local.set({ transcription_history: history });
+  log("Saved to history:", jobData.id);
 }
 
 // --------------- main workflow ---------------

@@ -1,19 +1,11 @@
-// ============================================================
-// popup.js — UI logic for Class Transcriber popup
-// ============================================================
-
 const $ = (sel) => document.querySelector(sel);
 let pollTimer = null;
-
-// --------------- messaging helpers ---------------
 
 function send(msg) {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage(msg, resolve);
   });
 }
-
-// --------------- visibility helpers ---------------
 
 function show(id) { document.getElementById(id).hidden = false; }
 function hide(id) { document.getElementById(id).hidden = true; }
@@ -39,7 +31,33 @@ const LABELS = {
   error:          "Error",
 };
 
-// --------------- render ---------------
+// --------------- tabs ---------------
+
+function switchTab(name) {
+  document.querySelectorAll(".tab").forEach((t) => {
+    t.classList.toggle("active", t.dataset.tab === name);
+  });
+  document.querySelectorAll(".tab-content").forEach((tc) => {
+    tc.hidden = tc.id !== `tab-${name}`;
+  });
+  if (name === "history") renderHistory();
+}
+
+// --------------- download helper ---------------
+
+function downloadFile(url, filename) {
+  if (chrome.downloads) {
+    chrome.downloads.download({
+      url: url,
+      filename: `MinervaTranscripts/${filename}`,
+      saveAs: false,
+    });
+  } else {
+    window.open(url, "_blank");
+  }
+}
+
+// --------------- render (transcribe tab) ---------------
 
 async function render() {
   const resp = await send({ type: "GET_STATE" });
@@ -47,7 +65,6 @@ async function render() {
   const { state, options } = resp;
   if (!state) return;
 
-  // Populate saved options
   if (options) {
     $("#backend-url").value  = options.backendUrl  || "http://localhost:5001";
     $("#privacy-mode").value = options.privacyMode || "names";
@@ -57,7 +74,6 @@ async function render() {
   const status   = state.status || "idle";
   const isActive = !["idle", "detected", "complete", "error"].includes(status);
 
-  // ---------- no class ----------
   if (status === "idle" && !state.classId) {
     show("no-class");
     hide("class-info"); hide("options-section"); hide("action-section");
@@ -70,11 +86,9 @@ async function render() {
   show("class-info");
   show("options-section");
 
-  // ---------- class info ----------
   $("#class-title").textContent    = state.classInfo?.sessionTitle || "Class Session";
   $("#class-id-display").textContent = `ID: ${state.classId || "—"}`;
 
-  // ---------- action button ----------
   show("action-section");
   const btn = $("#start-btn");
   if (isActive) {
@@ -82,19 +96,17 @@ async function render() {
     btn.textContent = "Processing …";
   } else {
     btn.disabled = false;
-    btn.textContent = "Start Transcription";
+    btn.innerHTML = "Start Transcription &rarr;";
   }
 
-  // ---------- status ----------
   if (isActive || status === "complete") {
     show("status-section");
-    $("#status-text").textContent      = state.backendMessage || LABELS[status] || status;
-    $("#progress-fill").style.width    = (PROGRESS[status] ?? 0) + "%";
+    $("#status-text").textContent   = state.backendMessage || LABELS[status] || status;
+    $("#progress-fill").style.width = (PROGRESS[status] ?? 0) + "%";
   } else {
     hide("status-section");
   }
 
-  // ---------- files ----------
   if (status === "complete" && state.files) {
     show("files-section");
     const base = (options?.backendUrl || "http://localhost:5001").replace(/\/+$/, "");
@@ -102,16 +114,16 @@ async function render() {
     list.innerHTML = "";
     [...(state.files.pdfs || []), ...(state.files.csvs || [])].forEach((name) => {
       const a = document.createElement("a");
-      a.href = `${base}/api/download/${state.jobId}/${name}`;
-      a.target = "_blank";
+      const url = `${base}/api/download/${state.jobId}/${name}`;
+      a.href = "#";
       a.textContent = name;
+      a.addEventListener("click", (e) => { e.preventDefault(); downloadFile(url, name); });
       list.appendChild(a);
     });
   } else {
     hide("files-section");
   }
 
-  // ---------- error ----------
   if (status === "error") {
     show("error-section");
     $("#error-text").textContent = state.error || "Unknown error";
@@ -120,7 +132,6 @@ async function render() {
     hide("error-section");
   }
 
-  // ---------- polling ----------
   if (isActive) startPolling(); else stopPolling();
 }
 
@@ -131,12 +142,72 @@ function stopPolling() {
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
 }
 
+// --------------- history tab ---------------
+
+function formatDate(isoStr) {
+  try {
+    const d = new Date(isoStr);
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+      + " at " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  } catch { return isoStr; }
+}
+
+async function renderHistory() {
+  const result = await chrome.storage.local.get("transcription_history");
+  const history = result.transcription_history || [];
+  const list = document.getElementById("history-list");
+  const empty = document.getElementById("history-empty");
+  const clearBtn = document.getElementById("clear-history-btn");
+
+  list.innerHTML = "";
+
+  if (history.length === 0) {
+    empty.hidden = false;
+    clearBtn.hidden = true;
+    return;
+  }
+
+  empty.hidden = true;
+  clearBtn.hidden = false;
+
+  history.forEach((entry) => {
+    const card = document.createElement("div");
+    card.className = "history-entry";
+
+    const base = (entry.backendUrl || "http://localhost:5001").replace(/\/+$/, "");
+    const allFiles = [...(entry.files?.pdfs || []), ...(entry.files?.csvs || [])];
+    const links = allFiles.map((name) => {
+      const url = `${base}/api/download/${entry.jobId}/${name}`;
+      return `<a href="#" data-url="${url}" data-name="${name}">${name}</a>`;
+    }).join("");
+
+    card.innerHTML = `
+      <div class="he-title">${entry.sessionTitle || "Class Session"}</div>
+      <div class="he-date">${formatDate(entry.completedAt)}</div>
+      <div class="he-id">Class ID: ${entry.classId || "—"}</div>
+      <div class="he-files">${links || "<span style='color:#9CA3AF;font-size:11px'>No files</span>"}</div>
+    `;
+
+    card.querySelectorAll("a[data-url]").forEach((a) => {
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        downloadFile(a.dataset.url, a.dataset.name);
+      });
+    });
+
+    list.appendChild(card);
+  });
+}
+
 // --------------- events ---------------
 
 document.addEventListener("DOMContentLoaded", () => {
   render();
 
-  // Start
+  document.querySelectorAll(".tab").forEach((t) => {
+    t.addEventListener("click", () => switchTab(t.dataset.tab));
+  });
+
   $("#start-btn").addEventListener("click", () => {
     const opts = {
       backendUrl:   $("#backend-url").value.replace(/\/+$/, ""),
@@ -151,13 +222,11 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(render, 600);
   });
 
-  // Reset
   $("#retry-btn").addEventListener("click", () => {
     send({ type: "RESET" });
     setTimeout(render, 400);
   });
 
-  // Persist option changes
   ["backend-url", "privacy-mode", "whisper-model"].forEach((id) => {
     $(`#${id}`).addEventListener("change", () => {
       send({
@@ -170,9 +239,13 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
   });
+
+  $("#clear-history-btn").addEventListener("click", async () => {
+    await chrome.storage.local.remove("transcription_history");
+    renderHistory();
+  });
 });
 
-// Respond to background state broadcasts
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "STATE_CHANGED") render();
 });

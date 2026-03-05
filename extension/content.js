@@ -163,14 +163,14 @@ function createProgressWidget() {
     "boxShadow:0 4px 20px rgba(0,0,0,.3)",
   ].join(";");
   panel.innerHTML = [
-    '<div style="fontWeight:700;marginBottom:8px;fontSize:12px;textTransform:uppercase;letterSpacing:.5px;color:#a5b4fc">Class Transcriber</div>',
+    '<div style="fontWeight:700;marginBottom:8px;fontSize:12px;textTransform:uppercase;letterSpacing:.5px;color:#FDBA74">Minerva\'s Scribe</div>',
     '<div class="ct-panel-status" style="marginBottom:10px">Starting…</div>',
     '<div class="ct-panel-track" style="height:6px;background:rgba(255,255,255,.2);borderRadius:3px;overflow:hidden;marginBottom:12px">',
-    '  <div class="ct-panel-bar-inner" style="height:100%;width:0;background:#4f46e5;borderRadius:3px;transition:width .3s ease"></div>',
+    '  <div class="ct-panel-bar-inner" style="height:100%;width:0;background:linear-gradient(90deg,#F97316,#EA580C);borderRadius:3px;transition:width .3s ease"></div>',
     "</div>",
     '<div style="display:flex;gap:8px;justifyContent:flex-end">',
     '  <button type="button" class="ct-btn ct-btn-dismiss" style="padding:6px 12px;background:rgba(255,255,255,.15);color:#fff;border:none;borderRadius:6px;fontSize:12px;fontWeight:600;cursor:pointer">Dismiss</button>',
-    '  <button type="button" class="ct-btn ct-btn-close" style="padding:6px 12px;background:#4f46e5;color:#fff;border:none;borderRadius:6px;fontSize:12px;fontWeight:600;cursor:pointer">Close</button>',
+    '  <button type="button" class="ct-btn ct-btn-close" style="padding:6px 12px;background:#F97316;color:#fff;border:none;borderRadius:6px;fontSize:12px;fontWeight:600;cursor:pointer">Close</button>',
     "</div>",
   ].join("");
 
@@ -200,14 +200,14 @@ function createProgressWidget() {
     "width:48px",
     "height:48px",
     "borderRadius:50%",
-    "background:#4f46e5",
+    "background:#F97316",
     "color:#fff",
     "border:none",
     "cursor:pointer",
     "display:flex",
     "alignItems:center",
     "justifyContent:center",
-    "boxShadow:0 2px 12px rgba(79,70,229,.4)",
+    "boxShadow:0 2px 12px rgba(249,115,22,.4)",
   ].join(";");
   iconBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>';
 
