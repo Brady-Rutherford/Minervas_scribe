@@ -1,0 +1,23 @@
+SHORT DESCRIPTION (132 chars max — for the Web Store tile):
+Automatically transcribe Minerva Forum class sessions into speaker-labeled PDFs. Zero manual steps.
+
+────────────────────────────────────────
+
+DETAILED DESCRIPTION (for the listing page):
+
+Minerva's Scribe automatically transcribes your Forum class recordings into clean, speaker-labeled PDF transcripts.
+
+How it works:
+1. Navigate to any class page on Forum
+2. Click "Start Transcription"
+3. A PDF transcript downloads automatically
+
+What you get:
+- Full transcript with timestamps and speaker names
+- Attendance list (present/absent)
+- Class metadata (title, date, section, link)
+- Everything compiled into a single downloadable PDF
+
+No cURL commands, no copy-paste, no manual setup. Just open the class page and click one button.
+
+Built for Minerva University professors and students.

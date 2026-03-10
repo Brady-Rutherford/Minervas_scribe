@@ -98,6 +98,19 @@ function findDownloadButton() {
   return null;
 }
 
+/** If the download button is an <a> with href, return absolute URL; else null. */
+function getDownloadButtonHref() {
+  const btn = findDownloadButton();
+  if (!btn) return null;
+  const href = btn.href || btn.getAttribute("href");
+  if (!href || href === "#" || href.startsWith("javascript:")) return null;
+  try {
+    return new URL(href, location.href).href;
+  } catch {
+    return null;
+  }
+}
+
 // --------------- progress widget: icon + expandable panel (bottom-right) ---------------
 
 const WIDGET_ID = "class-transcriber-widget";
@@ -265,6 +278,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       .then((url) => sendResponse({ url }))
       .catch(() => sendResponse({ url: null }));
     return true;
+  }
+
+  if (msg.type === "GET_DOWNLOAD_BUTTON_HREF") {
+    const href = getDownloadButtonHref();
+    sendResponse({ href: href || null });
+    return false;
   }
 
   if (msg.type === "TRIGGER_DOWNLOAD_CLICK") {

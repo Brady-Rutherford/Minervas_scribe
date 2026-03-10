@@ -110,6 +110,57 @@ body {
 .field input:focus,
 .field select:focus { outline: none; border-color: #F97316; box-shadow: 0 0 0 2px rgba(249,115,22,.12); }
 
+/* ---- backend URL row ---- */
+.url-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.url-row input { flex: 1; }
+
+.health-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.health-checking { background: #D1D5DB; animation: pulse-dot .8s ease-in-out infinite alternate; }
+.health-ok       { background: #16A34A; animation: none; }
+.health-fail     { background: #DC2626; animation: none; }
+
+@keyframes pulse-dot {
+  from { opacity: .4; }
+  to   { opacity: 1; }
+}
+
+.copy-btn {
+  flex-shrink: 0;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  background: none;
+  border: 1px solid #D1D5DB;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #6B7280;
+  transition: color .15s, border-color .15s;
+  position: relative;
+}
+.copy-btn:hover { color: #F97316; border-color: #F97316; }
+
+.copy-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111827;
+  color: #fff;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  margin-bottom: 4px;
+}
+
 .row   { display: flex; gap: 8px; }
 .half  { flex: 1; }
 

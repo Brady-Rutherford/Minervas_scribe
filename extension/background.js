@@ -5,10 +5,12 @@
 const VERBOSE = true;
 function log(...args) { if (VERBOSE) console.log("[CT:bg]", ...args); }
 
+const BACKEND_URL = "https://braydon--minervas-scribe-web.modal.run";
+
 // --------------- defaults ---------------
 
 const DEFAULT_OPTIONS = {
-  backendUrl: "http://localhost:5001",
+  backendUrl: BACKEND_URL,
   privacyMode: "names",
   whisperModel: "medium",
 };
@@ -86,12 +88,17 @@ async function getVideoUrl(tabId) {
     return domRes.url;
   }
 
-  // Layer 2 — click the download button and intercept the new tab
+  // Layer 2 — if "Download Class Video" is an <a href="...">, open that URL in a new tab; else simulate click
+  const hrefRes = await messageContent(tabId, { type: "GET_DOWNLOAD_BUTTON_HREF" });
+  if (hrefRes && hrefRes.href) {
+    log("Layer 2: opening download link in new tab (no click)");
+    return triggerDownloadAndCapture(tabId, hrefRes.href);
+  }
   log("Layer 2: programmatic download-click + tab capture …");
   return triggerDownloadAndCapture(tabId);
 }
 
-function triggerDownloadAndCapture(classTabId) {
+function triggerDownloadAndCapture(classTabId, openUrl) {
   return new Promise((resolve, reject) => {
     let captured = false;
     let candidateTabId = null;
@@ -105,11 +112,11 @@ function triggerDownloadAndCapture(classTabId) {
       if (!captured) {
         cleanup();
         reject(new Error(
-          "Timed out (20 s) waiting for the video download tab. " +
+          "Timed out (45 s) waiting for the video download tab. " +
           "Make sure you can see a \"Download Class Video\" button on the page."
         ));
       }
-    }, 20000);
+    }, 45000);
 
     function onCreated(tab) {
       log("New tab created:", tab.id, tab.pendingUrl || tab.url || "(blank)");
@@ -134,6 +141,13 @@ function triggerDownloadAndCapture(classTabId) {
 
     chrome.tabs.onCreated.addListener(onCreated);
     chrome.tabs.onUpdated.addListener(onUpdated);
+
+    if (openUrl) {
+      chrome.tabs.create({ url: openUrl }, (tab) => {
+        if (tab && tab.id) candidateTabId = tab.id;
+      });
+      return;
+    }
 
     messageContent(classTabId, { type: "TRIGGER_DOWNLOAD_CLICK" })
       .then((r) => {
@@ -169,6 +183,7 @@ async function sendToBackend(backendUrl, payload) {
 
 let lastPollTs = 0;
 const MIN_POLL_GAP_MS = 3000;
+const COLD_START_THRESHOLD_MS = 20000;
 
 async function checkJobStatus() {
   const now = Date.now();
@@ -178,13 +193,22 @@ async function checkJobStatus() {
   const { activeJob } = await chrome.storage.local.get("activeJob");
   if (!activeJob) return;
 
+  if (!jobStartedAt) jobStartedAt = now;
+
   try {
     const res = await fetch(`${activeJob.backendUrl}/api/status/${activeJob.jobId}`);
     if (!res.ok) return;
     const data = await res.json();
 
     log("Poll:", data.status, data.message);
-    await setState({ backendMessage: data.message });
+
+    const earlyStages = ["queued", "downloading"];
+    const elapsed = now - jobStartedAt;
+    if (earlyStages.includes(data.status) && elapsed > COLD_START_THRESHOLD_MS) {
+      await setState({ backendMessage: "Starting up GPU (first launch takes ~30s)…" });
+    } else {
+      await setState({ backendMessage: data.message });
+    }
 
     const statusMap = {
       queued: "transcribing",
@@ -201,6 +225,7 @@ async function checkJobStatus() {
     if (data.status === "complete") {
       chrome.alarms.clear("poll_job");
       await chrome.storage.local.remove("activeJob");
+      jobStartedAt = 0;
       await setState({ status: "complete", files: data.files, backendMessage: "Transcription complete!" });
       const st = await getState();
       const opts = await getOptions();

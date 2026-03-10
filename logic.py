@@ -4,6 +4,7 @@ import os
 import gc
 import csv
 import json
+import math
 import subprocess
 from pathlib import Path
 from datetime import timedelta
@@ -11,8 +12,7 @@ import requests
 import iso8601
 import numpy as np
 from pydub import AudioSegment
-import torch
-import whisper
+from groq import Groq
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -139,28 +139,87 @@ def validate_and_prepare_audio(input_path: str) -> str:
     return convert_to_whisper_wav(str(p))
 
 # --------------------------
-# Transcription (Whisper)
+# Transcription (Groq API)
 # --------------------------
-def transcribe_to_json(wav_path: str, class_id: str, model_name: str = "medium") -> str:
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = whisper.load_model(model_name).to(device)
-    if device == "cuda":
-        model = model.half()
-    result = model.transcribe(
-        wav_path,
-        word_timestamps=False,
-        language="en",
-        task="transcribe",
-        fp16=(device=="cuda")
-    )
-    segs = result.get("segments", [])
-    # minimal normalization
-    for s in segs:
-        s["text"] = normalize_sentence_spacing(s.get("text",""))
+def transcribe_to_json(wav_path: str, class_id: str, model_name: str = "whisper-large-v3") -> str:
+    api_key = os.environ.get("GROQ_API_KEY")
+    if not api_key:
+        raise ValueError("GROQ_API_KEY not set. Get a free key at console.groq.com")
+
+    client = Groq(api_key=api_key)
+
+    MAX_FILE_SIZE_BYTES = 24 * 1024 * 1024  # stay under Groq's 25MB limit
+    file_size = os.path.getsize(wav_path)
+
+    if file_size <= MAX_FILE_SIZE_BYTES:
+        with open(wav_path, "rb") as f:
+            response = client.audio.transcriptions.create(
+                file=(Path(wav_path).name, f.read()),
+                model="whisper-large-v3-turbo",
+                response_format="verbose_json",
+                language="en",
+                timestamp_granularities=["segment"],
+            )
+        raw_segs = response.segments if hasattr(response, "segments") else response.get("segments", [])
+        segments = []
+        for seg in raw_segs:
+            s = seg if isinstance(seg, dict) else seg.__dict__ if hasattr(seg, "__dict__") else {}
+            start = s.get("start", 0) if isinstance(s, dict) else getattr(seg, "start", 0)
+            end = s.get("end", 0) if isinstance(s, dict) else getattr(seg, "end", 0)
+            text = s.get("text", "") if isinstance(s, dict) else getattr(seg, "text", "")
+            segments.append({"start": start, "end": end, "text": normalize_sentence_spacing(str(text).strip())})
+    else:
+        audio = AudioSegment.from_wav(wav_path)
+        total_duration_ms = len(audio)
+        chunk_duration_ms = int((MAX_FILE_SIZE_BYTES / file_size) * total_duration_ms * 0.9)
+        overlap_ms = 5000
+
+        segments = []
+        offset_ms = 0
+        chunk_index = 0
+
+        while offset_ms < total_duration_ms:
+            end_ms = min(offset_ms + chunk_duration_ms, total_duration_ms)
+            chunk = audio[offset_ms:end_ms]
+
+            chunk_path = f"tmp_inputs/chunk_{class_id}_{chunk_index}.wav"
+            Path("tmp_inputs").mkdir(exist_ok=True)
+            chunk.export(chunk_path, format="wav")
+
+            with open(chunk_path, "rb") as f:
+                response = client.audio.transcriptions.create(
+                    file=(f"chunk_{chunk_index}.wav", f.read()),
+                    model="whisper-large-v3-turbo",
+                    response_format="verbose_json",
+                    language="en",
+                    timestamp_granularities=["segment"],
+                )
+
+            offset_seconds = offset_ms / 1000.0
+            skip_seconds = (overlap_ms / 1000.0) if chunk_index > 0 else 0
+
+            raw_segs = response.segments if hasattr(response, "segments") else response.get("segments", [])
+            for seg in raw_segs:
+                s = seg if isinstance(seg, dict) else seg.__dict__ if hasattr(seg, "__dict__") else {}
+                start = s.get("start", 0) if isinstance(s, dict) else getattr(seg, "start", 0)
+                end = s.get("end", 0) if isinstance(s, dict) else getattr(seg, "end", 0)
+                text = s.get("text", "") if isinstance(s, dict) else getattr(seg, "text", "")
+                if start >= skip_seconds:
+                    segments.append({
+                        "start": start + offset_seconds,
+                        "end": end + offset_seconds,
+                        "text": normalize_sentence_spacing(str(text).strip()),
+                    })
+
+            Path(chunk_path).unlink(missing_ok=True)
+            offset_ms += chunk_duration_ms - overlap_ms
+            chunk_index += 1
+
+    result = {"segments": segments}
     out_path = f"outputs/session_{class_id}_transcript.json"
     Path("outputs").mkdir(exist_ok=True, parents=True)
     with open(out_path, "w", encoding="utf-8") as f:
-        json.dump({"segments": segs}, f, indent=2)
+        json.dump(result, f, indent=2)
     return out_path
 # --------------------------
 # Forum metadata / events
@@ -507,7 +566,7 @@ def run_pipeline(
     wav_path = validate_and_prepare_audio(input_path)
 
     if progress_cb:  # 👈 ADDED
-        progress_cb("Running transcription (Small Model = ~ 40 minutes, Medium takes ~ 1hr 30 mins and Large will take overnight)...", 0.5)
+        progress_cb("Transcribing via Groq API (usually under 30 seconds)...", 0.5)
     transcript_json = transcribe_to_json(wav_path, class_id, model_name=model_name)  # <-- model param passed
 
     # Forum metadata + events
