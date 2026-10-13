@@ -1,0 +1,10 @@
+# v3: keep credentials, recordings and generated data out of git.
+# (The root .gitignore is left untouched on purpose; see V3_README.md.)
+.env
+.env.*
+!.env.example
+scribe_data/
+*.mp4
+*.ogg
+*.opus
+*.wav

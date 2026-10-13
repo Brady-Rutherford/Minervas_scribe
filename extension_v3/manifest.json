@@ -1,0 +1,51 @@
+{
+  "manifest_version": 3,
+  "name": "Minerva's Scribe v3",
+  "version": "3.0.0",
+  "description": "Transcribe Minerva Forum classes with calibrated, per-word speaker attribution. Your Forum cookies never leave the browser.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "activeTab",
+    "alarms",
+    "downloads",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://forum.minerva.edu/*",
+    "http://127.0.0.1/*",
+    "http://localhost/*",
+    "https://*.modal.run/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://forum.minerva.edu/app/courses/*/sections/*/classes/*"
+      ],
+      "js": ["forum-client.js", "content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://forum.minerva.edu/*"],
+      "js": ["handraise-logger.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Minerva's Scribe v3",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  }
+}

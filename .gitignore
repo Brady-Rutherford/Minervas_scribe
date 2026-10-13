@@ -26,3 +26,14 @@ build/
 # Backend job outputs (generated files)
 outputs/
 tmp_inputs/
+
+# Secrets: never commit. `.env` is a link to ~/.minerva/.env (outside the repo).
+.env
+.env.*
+!.env.example
+
+# Harvested class data and media (contain classmates; never commit)
+scribe_data/
+*.mp4
+*.ogg
+*.wav
