@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "minervas-scribe"
+version = "3.0.0"
+description = "Minerva's Scribe v3: Forum class transcription with calibrated, fused speaker attribution."
+readme = "V3_README.md"
+requires-python = ">=3.11"
+authors = [{ name = "Brady Rutherford" }]
+license = { text = "Proprietary" }
+dependencies = [
+  "requests>=2.31",
+  "python-dotenv>=1.0",
+  "numpy>=1.26",
+  "scipy>=1.11",
+]
+
+[project.optional-dependencies]
+# Deepgram (the default provider) needs nothing beyond `requests`.
+groq = ["groq>=0.11"]
+local = ["faster-whisper>=1.0"]
+pdf = ["reportlab>=4.2"]
+server = ["flask>=3.0"]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[project.scripts]
+scribe = "hosts.cli:main"
+scribe-server = "hosts.local_server:main"
+
+# The repo root also holds the v2 files (logic.py, server.py, app.py, ...).
+# List packages explicitly so setuptools never tries to package those.
+[tool.setuptools]
+packages = ["scribe_core", "scribe_core.export", "hosts"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# v3 lints only its own code; the v2 files are left exactly as they were.
+include = ["scribe_core/**/*.py", "hosts/**/*.py", "tests/**/*.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+ignore = ["SIM105", "SIM108"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["B011"]
