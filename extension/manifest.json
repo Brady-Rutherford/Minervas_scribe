@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Minerva's Scribe",
+  "version": "2.0.0",
+  "description": "Automatically transcribe Minerva Forum class sessions with zero manual steps.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "activeTab",
+    "alarms",
+    "downloads"
+  ],
+  "host_permissions": [
+    "https://forum.minerva.edu/*",
+    "http://localhost/*",
+    "https://*.modal.run/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://forum.minerva.edu/app/courses/*/sections/*/classes/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Minerva's Scribe"
+  }
+}

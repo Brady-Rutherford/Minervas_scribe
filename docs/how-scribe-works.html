@@ -1,0 +1,500 @@
+<title>How Scribe v3 Works</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root {
+  --ground: #f3f1ee;
+  --surface: #ffffff;
+  --surface-2: #f8f6f3;
+  --ink: #1b1716;
+  --ink-2: #4f4644;
+  --muted: #7d7370;
+  --rule: #e0dad5;
+  --rule-strong: #c4bbb5;
+  --accent: #9a1c22;
+  --accent-ink: #851419;
+  --accent-wash: rgba(154, 28, 34, 0.09);
+  --forum: #2a78d6;
+  --asr: #eb6834;
+  --ok: #0b7a52;
+  --code-bg: #f4f1ed;
+  --shadow: 0 1px 2px rgba(27, 23, 22, 0.06), 0 6px 24px rgba(27, 23, 22, 0.06);
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #12100f; --surface: #1a1716; --surface-2: #211d1c; --ink: #efe9e6; --ink-2: #c3b9b5;
+    --muted: #978c88; --rule: #2f2a28; --rule-strong: #463e3b; --accent: #e0848a; --accent-ink: #ef9fa4;
+    --accent-wash: rgba(224, 132, 138, 0.12); --forum: #3987e5; --asr: #d95926; --ok: #3fcf98; --code-bg: #171413;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 24px rgba(0, 0, 0, 0.3);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #12100f; --surface: #1a1716; --surface-2: #211d1c; --ink: #efe9e6; --ink-2: #c3b9b5;
+  --muted: #978c88; --rule: #2f2a28; --rule-strong: #463e3b; --accent: #e0848a; --accent-ink: #ef9fa4;
+  --accent-wash: rgba(224, 132, 138, 0.12); --forum: #3987e5; --asr: #d95926; --ok: #3fcf98; --code-bg: #171413;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 24px rgba(0, 0, 0, 0.3);
+}
+* { box-sizing: border-box; }
+body { background: var(--ground); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.6; padding-inline: 20px; padding-block: 0 64px; }
+.wrap { max-width: 1100px; margin: 0 auto; }
+code, .mono { font-family: var(--mono); font-size: 0.88em; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+a { color: var(--accent-ink); text-underline-offset: 3px; }
+
+.bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-block: 18px; border-bottom: 1px solid var(--rule); font-family: var(--mono); font-size: 12.5px; color: var(--ink-2); }
+.brand { display: flex; align-items: center; gap: 10px; }
+.quill { width: 10px; height: 10px; background: var(--accent); transform: rotate(45deg); }
+.hero { padding-block: 44px 24px; display: grid; gap: 20px; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--display); font-stretch: 116%; font-weight: 800; font-size: clamp(32px, 5vw, 56px); line-height: 1.04; letter-spacing: -0.02em; margin: 0; max-width: 19ch; text-wrap: balance; }
+h1 em { font-style: normal; color: var(--accent-ink); }
+.lede { font-size: 18px; color: var(--ink-2); max-width: 66ch; margin: 0; }
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--rule-strong); border-bottom: 1px solid var(--rule); }
+.fact { padding: 14px 16px 14px 0; display: grid; gap: 2px; align-content: start; }
+.fact + .fact { padding-left: 16px; border-left: 1px solid var(--rule); }
+.fact > b { font-family: var(--display); font-stretch: 112%; font-size: 26px; font-weight: 750; line-height: 1.15; }
+.fact > span { font-size: 13.5px; color: var(--ink-2); line-height: 1.4; }
+section { padding-block: 40px 8px; }
+h2 { font-family: var(--display); font-stretch: 110%; font-weight: 750; font-size: clamp(23px, 3vw, 31px); letter-spacing: -0.01em; line-height: 1.15; margin: 6px 0 10px; text-wrap: balance; }
+h3 { font-family: var(--display); font-stretch: 105%; font-weight: 700; font-size: 18px; margin: 0 0 6px; }
+.intro { color: var(--ink-2); max-width: 70ch; margin: 0 0 20px; }
+.prov { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.prov.code { color: var(--ok); }
+.prov.demo { color: var(--muted); }
+.prov.live { color: var(--forum); }
+
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; }
+table.t { width: 100%; border-collapse: collapse; font-size: 14.5px; min-width: 700px; }
+table.t th, table.t td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+table.t tr:last-child td { border-bottom: none; }
+table.t th { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 500; background: var(--surface-2); }
+table.t td:first-child { font-weight: 600; white-space: nowrap; }
+table.t td.old { color: var(--ink-2); }
+table.t td.new { color: var(--ink); }
+
+.explorer { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; }
+.diagram-scroll { overflow-x: auto; border-bottom: 1px solid var(--rule); background: var(--surface-2); }
+.diagram-scroll svg { display: block; min-width: 880px; width: 100%; height: auto; }
+.dg-edge { stroke: var(--rule-strong); stroke-width: 1.5; fill: none; }
+.dg-edge.on { stroke: var(--accent); stroke-width: 2.25; stroke-dasharray: 6 5; animation: flow 0.9s linear infinite; }
+@keyframes flow { to { stroke-dashoffset: -11; } }
+@media (prefers-reduced-motion: reduce) { .dg-edge.on { animation: none; stroke-dasharray: none; } }
+.dg-arrow { fill: var(--rule-strong); }
+.dg-node { cursor: pointer; outline: none; }
+.dg-node rect { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1.25; }
+.dg-node:hover rect { stroke: var(--ink-2); }
+.dg-node:focus-visible rect { stroke: var(--accent); stroke-width: 2.5; }
+.dg-node.on rect { fill: var(--accent-wash); stroke: var(--accent); stroke-width: 2; }
+.dg-num { font-family: var(--mono); font-size: 10px; fill: var(--muted); }
+.dg-name { font-family: var(--display); font-stretch: 105%; font-weight: 700; font-size: 13.5px; fill: var(--ink); }
+.dg-sub { font-family: var(--mono); font-size: 10px; fill: var(--ink-2); }
+.dg-label { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); }
+.dg-label.on { fill: var(--accent-ink); font-weight: 500; }
+.stepper { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 20px; border-bottom: 1px solid var(--rule); }
+.where { font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.where b { color: var(--ink); font-weight: 500; }
+.btns { display: flex; gap: 8px; }
+button.step { font: 500 14px/1 var(--body); color: var(--ink); background: var(--surface-2); border: 1px solid var(--rule-strong); border-radius: 8px; padding: 9px 14px; cursor: pointer; }
+button.step.primary { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+button.step:disabled { opacity: 0.4; cursor: default; }
+.panel { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
+.say { padding: 22px 24px 26px; border-right: 1px solid var(--rule); display: grid; gap: 14px; align-content: start; }
+.show { padding: 22px 24px 26px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.say h3 { font-size: 21px; }
+.say p { margin: 0; color: var(--ink-2); }
+.io { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 14px; margin: 0; }
+.io dt { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+.io dd { margin: 0; }
+.why { border-left: 3px solid var(--accent); padding: 2px 0 2px 12px; font-size: 14px; color: var(--ink-2); }
+.why b { color: var(--ink); }
+.show-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.show-head .t { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+pre.code { margin: 0; background: var(--code-bg); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 14px; font: 12.5px/1.6 var(--mono); color: var(--ink); overflow-x: auto; white-space: pre; }
+.code .k { color: var(--ink-2); } .code .s { color: var(--accent-ink); } .code .n { color: var(--forum); } .code .c { color: var(--muted); }
+.files { display: flex; flex-wrap: wrap; gap: 6px; }
+.file { font-family: var(--mono); font-size: 12px; background: var(--code-bg); border: 1px solid var(--rule); border-radius: 6px; padding: 3px 8px; }
+.note { font-size: 13px; color: var(--muted); margin: 0; }
+
+.align-card { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; padding: 18px 20px; box-shadow: var(--shadow); display: grid; gap: 14px; }
+.ctl { display: grid; gap: 4px; max-width: 560px; }
+.ctl label { font-size: 14px; display: flex; justify-content: space-between; gap: 8px; }
+.ctl label output { font-family: var(--mono); color: var(--accent-ink); }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+.chart-scroll { overflow-x: auto; }
+.chart-scroll svg { display: block; width: 100%; min-width: 640px; height: auto; }
+.lane-f { fill: var(--forum); opacity: 0.85; }
+.lane-a { fill: var(--asr); opacity: 0.85; }
+.overlap { fill: var(--ok); }
+.ax { stroke: var(--rule-strong); stroke-width: 1; }
+.tick { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); }
+.lbl { font-family: var(--mono); font-size: 11px; fill: var(--ink-2); }
+.curve { fill: none; stroke: var(--ink); stroke-width: 1.75; }
+.cursor { stroke: var(--accent); stroke-width: 1.5; }
+.peak { fill: var(--ok); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+.sw.f { background: var(--forum); } .sw.a { background: var(--asr); } .sw.o { background: var(--ok); }
+.readout { font-size: 14.5px; color: var(--ink-2); margin: 0; }
+.readout b { color: var(--ink); }
+
+.hows { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.how { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.how code { font-size: 13px; color: var(--accent-ink); font-weight: 500; }
+.how p { margin: 0; font-size: 14px; color: var(--ink-2); }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.box { background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; padding: 16px 18px; display: grid; gap: 8px; align-content: start; }
+.box ul { margin: 0; padding-left: 18px; font-size: 14.5px; color: var(--ink-2); }
+.box li + li { margin-top: 4px; }
+footer { margin-top: 52px; padding-top: 18px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
+footer p { margin: 0; max-width: 92ch; }
+@media (max-width: 860px) {
+  .panel { grid-template-columns: 1fr; }
+  .say { border-right: none; border-bottom: 1px solid var(--rule); }
+  .hows, .grid2 { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fact:nth-child(3) { padding-left: 0; border-left: none; }
+  .fact:nth-child(n+3) { border-top: 1px solid var(--rule); }
+}
+</style>
+
+<div class="wrap">
+  <header class="bar">
+    <div class="brand"><span class="quill" aria-hidden="true"></span><span>MINERVA'S SCRIBE · v3 · how it works</span></div>
+    <div>Brady Rutherford · its own repo</div>
+  </header>
+
+  <div class="hero">
+    <div class="eyebrow">From a Forum class to a timed, attributed transcript</div>
+    <h1>Every word, at the right time, next to the <em>right person</em></h1>
+    <p class="lede">Scribe v3 takes one Forum class and returns a transcript where each word carries its time and its speaker. It gets the words from Deepgram and the speakers from Forum's own voice log, then checks that the two clocks agree. It runs from a terminal on your Mac or from the Chrome extension, and it is the input for the On Cue pipeline.</p>
+    <div class="facts" role="list">
+      <div class="fact" role="listitem"><b>~4,600</b><span>lines of Python in the engine and command line, plus a Chrome extension</span></div>
+      <div class="fact" role="listitem"><b>118</b><span>offline tests pass, measured 13 Oct</span></div>
+      <div class="fact" role="listitem"><b>±0.0 s</b><span>error recovering a planted 0.8 s clock offset in the demo class</span></div>
+      <div class="fact" role="listitem"><b>Live</b><span>Forum login works from the terminal (<code>scribe me</code>, <code>scribe sync</code>); first real transcription is next</span></div>
+    </div>
+  </div>
+
+  <section aria-labelledby="diff-h">
+    <div class="eyebrow">What changed</div>
+    <h2 id="diff-h">v2 guessed; v3 measures</h2>
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>Part</th><th>v2 (spring 2026)</th><th>v3 (now)</th></tr></thead>
+        <tbody>
+          <tr><td>Recording link</td><td class="old">clicked the "Download Class Video" button and caught the new tab</td><td class="new">asks Forum's API for the signed link directly</td></tr>
+          <tr><td>Transcription</td><td class="old">Whisper, audio cut into chunks with 5 s overlaps: words doubled or lost at the seams</td><td class="new">Deepgram Nova-3, whole class in one request, Deepgram fetches the recording itself</td></tr>
+          <tr><td>Timing</td><td class="old">assumed the video and Forum's log start at the same instant</td><td class="new">measures the offset and drift between the two clocks, and says when it can't</td></tr>
+          <tr><td>Who said it</td><td class="old">whoever was talking at a segment's first second</td><td class="new">decided per word, from Forum's log and Deepgram's voice clusters together</td></tr>
+          <tr><td>Unknown speaker</td><td class="old">credited to "Professor"</td><td class="new">marked "Unattributed"; nobody gets credit they didn't earn</td></tr>
+          <tr><td>Short turns</td><td class="old">voice events under 1 s were dropped</td><td class="new">kept, so "yeah" and "exactly" land on the right person</td></tr>
+          <tr><td>Scale</td><td class="old">one class at a time, by hand</td><td class="new"><code>scribe sync</code> pulls every class's records; <code>transcribe</code> runs per class</td></tr>
+          <tr><td>Privacy</td><td class="old">open download links on the server, names everywhere</td><td class="new">audio deleted after processing, links never logged, an anonymised mode with no names</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="flow-h">
+    <div class="eyebrow">The seven stages</div>
+    <h2 id="flow-h">Follow one class through Scribe</h2>
+    <p class="intro">Click a stage, or use the buttons or ← → keys. The samples come from a demo run of the real code on an invented class, with made-up names: Prof. Rivera, Ada, Ben and you. They're tagged <span class="prov demo">demo</span>. Values read from the code itself are tagged <span class="prov code">from code</span>.</p>
+    <div class="explorer" id="explorer">
+      <div class="diagram-scroll" id="diagram"></div>
+      <div class="stepper">
+        <div class="where" id="where" aria-live="polite"></div>
+        <div class="btns">
+          <button class="step" id="prev" type="button">← Previous</button>
+          <button class="step primary" id="next" type="button">Next stage →</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="say" id="say"></div>
+        <div class="show" id="show"></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="align-h">
+    <div class="eyebrow">Stage 4, up close</div>
+    <h2 id="align-h">Lining up two clocks</h2>
+    <p class="intro">Forum's log says when each person's microphone was active. Deepgram says when it heard words. They should overlap, but the video can start a little before or after Forum's "recording started" time. Scribe slides one against the other and keeps the shift where they overlap most. Try it: the demo audio runs 0.8 s ahead.</p>
+    <div class="align-card">
+      <div class="ctl">
+        <label for="shift">Shift Forum's log by <output id="shift-out" for="shift">+0.0 s</output></label>
+        <input type="range" id="shift" min="-3" max="3" step="0.1" value="0">
+      </div>
+      <div class="legend" aria-hidden="true">
+        <span><i class="sw f"></i>Forum: microphone active</span>
+        <span><i class="sw a"></i>Deepgram: words heard</span>
+        <span><i class="sw o"></i>overlap</span>
+      </div>
+      <div class="chart-scroll" id="align-chart"></div>
+      <p class="readout" id="align-readout"></p>
+    </div>
+  </section>
+
+  <section aria-labelledby="how-h">
+    <div class="eyebrow">Stage 5, up close</div>
+    <h2 id="how-h">Every word records <i>how</i> its speaker was decided</h2>
+    <div class="hows">
+      <div class="how"><code>forum+cluster</code><p>Forum's log and the voice both point to the same person. The strongest case, and the most common.</p></div>
+      <div class="how"><code>forum</code><p>Exactly one person's microphone was active, and the voice cluster has no owner yet.</p></div>
+      <div class="how"><code>cluster</code><p>No microphone (or several) was active, so the voice decides. Covers short gaps and edge jitter.</p></div>
+      <div class="how"><code>conflict</code><p>Forum says one person, the voice says another. A very confident voice (above 0.8) wins, which catches a hot mic picking up a neighbour.</p></div>
+      <div class="how"><code>forum-overlap</code><p>Crosstalk: several microphones on, and the voice doesn't settle it. The person with the most overlap gets it.</p></div>
+      <div class="how"><code>none</code><p>Nothing to go on: the word is "Unattributed". Never "Professor".</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="run-h">
+    <div class="eyebrow">Using it</div>
+    <h2 id="run-h">Two ways to run it, one engine</h2>
+    <div class="grid2">
+      <div class="box"><h3>From a terminal (what On Cue uses)</h3>
+        <pre class="code"><span class="c"># confirm your Forum login works</span>
+scribe me
+<span class="c"># pull every class's records (no video)</span>
+scribe sync --out data/scribe
+<span class="c"># transcribe one class</span>
+scribe transcribe --class <span class="n">105076</span> --privacy ids
+<span class="c"># check a recording's size, without printing its link</span>
+scribe probe --class <span class="n">105076</span></pre>
+        <p class="note">Reads the Forum cookie and Deepgram key from <code>.env</code>, which links to <code>~/.minerva/.env</code>, outside every repo.</p>
+      </div>
+      <div class="box"><h3>From Chrome (the extension)</h3>
+        <ul>
+          <li><code>extension_v3/</code> asks Forum for the class data and the recording link from inside your logged-in tab, so your cookie never leaves the browser</li>
+          <li>sends the bundle to a server on your own Mac (127.0.0.1 only), which runs the same engine</li>
+          <li>optional, off by default: logs your own <code>H</code> presses in live classes, used to check the hand detector's timing</li>
+        </ul>
+        <p class="note">The extension hasn't been loaded into Chrome yet; its JavaScript has only been syntax-checked.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="safe-h">
+    <div class="eyebrow">Privacy and safety</div>
+    <h2 id="safe-h">What never happens</h2>
+    <div class="grid2">
+      <div class="box"><ul>
+        <li><b>Your audio isn't kept by Deepgram:</b> every request sends <code>mip_opt_out=true</code>, so it's kept only while processing. It's hard-coded and tested twice.</li>
+        <li><b>Signed recording links are never written to disk or logs.</b> Any log line has the query string removed.</li>
+        <li><b>The local video copy is deleted</b> when a job ends, if one was needed at all.</li>
+      </ul></div>
+      <div class="box"><ul>
+        <li><b>Forum's hand-raise endpoint is never called.</b> Both the command line and the extension refuse <code>/api/v1/class-users/</code>.</li>
+        <li><b>Anonymised mode</b> replaces every speaker with a code like <code>u_b968d1136a</code> and drops name fields. Names spoken aloud stay in the text; On Cue masks those itself.</li>
+        <li><b>Secrets stay local.</b> A pre-commit check refuses any commit that contains a key or cookie.</li>
+      </ul></div>
+    </div>
+  </section>
+
+  <footer>
+    <p>Demo samples come from running Scribe v3's real pipeline on an invented class (fake audio words and a fake Forum log; every name is made up). Settings and line counts were read from the code on 13 Oct 2026. Still untested live: Deepgram fetching a real recording, classes whose recording restarted mid-session, and the extension inside Chrome.</p>
+    <p>Repository: <code>Brady-Rutherford/Minervas_scribe</code>, branch <code>v3</code> (local, not yet pushed). It stays separate from the CS156 repo, which installs it as a package.</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  const STAGES = [
+    {
+      name: "Class bundle", sub: "Forum API",
+      title: "Collect everything Forum knows about the class",
+      text: "Scribe asks Forum for the class record, the roster, the event log (who spoke when, chat, lesson segments), polls, and when recording started and stopped. Forum sends keys in two spellings depending on a request header, so everything is normalised first.",
+      io: [["in", "your Forum login and a class id"], ["out", "one bundle: class, roster, events, polls, recording times"]],
+      why: "<b>Detail that matters:</b> in a voice event, <code>timestamp</code> marks the <i>end</i> of the speech in milliseconds, so the start is timestamp minus duration. The second-level <code>start-time</code> is only a fallback.",
+      files: ["forum.py", "forum_events.py", "timeutil.py"],
+      show: () => `<div class="show-head"><span class="t">one voice event, as Forum sends it</span><span class="prov demo">demo</span></div>
+<pre class="code"><span class="k">"event-type"</span>: <span class="s">"voice"</span>,  <span class="k">"actor-id"</span>: <span class="n">4</span>,
+<span class="k">"room-signature"</span>: <span class="s">"Main Classroom"</span>,
+<span class="k">"timestamp"</span>: <span class="n">…052000</span>,            <span class="c">// END, in ms</span>
+<span class="k">"event-data"</span>: { <span class="k">"duration"</span>: <span class="n">3000</span> }   <span class="c">// ms → start = end − 3.0 s</span></pre>
+<p class="note">Breakout-room speech is dropped here: the recording only covers the main room.</p>`,
+    },
+    {
+      name: "Recording link", sub: "signed, expiring",
+      title: "Ask Forum for the recording, not the download button",
+      text: "Forum's API hands out a signed CloudFront link for each recording: a low-resolution version and a high-resolution one. The link expires, so Scribe asks for a fresh one right before each job.",
+      io: [["in", "the class id"], ["out", "a signed link (kept in memory only)"]],
+      why: "<b>Why it matters:</b> no clicking, no catching new tabs, and it works for 694 classes as easily as for one. The link is a credential while it lives, so it's never printed or saved.",
+      files: ["forum.py", "redact.py", "audio.py"],
+      show: () => `<div class="show-head"><span class="t">what Forum returns (shape only)</span><span class="prov code">from code</span></div>
+<pre class="code">GET /api/v1/recording-sessions/<span class="n">{class_id}</span>/generate_recording_urls
+{ <span class="k">"lowres"</span>:  <span class="s">"…/zencoder-recording-600k.mp4?Expires=…&Signature=…"</span>,
+  <span class="k">"highres"</span>: <span class="s">"…/recording.mp4?Expires=…&Signature=…"</span> }</pre>
+<p class="note">Logged as <code>…/recording.mp4</code>, with the query string stripped.</p>`,
+    },
+    {
+      name: "Transcribe", sub: "Deepgram Nova-3",
+      title: "Turn the audio into timed words",
+      text: "Deepgram fetches the recording itself and returns every word with its start, end and confidence, plus an anonymous voice cluster (speaker 0, 1, 2…). Scribe gives it name hints from the roster and course so names come out right. If Deepgram can't reach the link, Scribe downloads the audio, shrinks it to about 11 MB, and uploads it instead.",
+      io: [["in", "the signed link (or audio)"], ["out", "words: text, start, end, confidence, voice cluster"]],
+      why: "<b>Settings:</b> Nova-3 · speaker clusters on · roster names as hints · EU endpoint · <code>mip_opt_out=true</code>, so the audio is kept only while processing. Groq or local Whisper can replace Deepgram; they just don't give voice clusters.",
+      files: ["asr_deepgram.py", "asr.py", "audio.py"],
+      show: () => `<div class="show-head"><span class="t">the first words Deepgram returned</span><span class="prov demo">demo</span></div>
+<pre class="code">{<span class="k">"start"</span>: <span class="n">10.800</span>, <span class="k">"end"</span>: <span class="n">11.475</span>, <span class="k">"text"</span>: <span class="s">"Okay"</span>,      <span class="k">"conf"</span>: <span class="n">0.93</span>, <span class="k">"cluster"</span>: <span class="n">0</span>}
+{<span class="k">"start"</span>: <span class="n">11.594</span>, <span class="k">"end"</span>: <span class="n">12.269</span>, <span class="k">"text"</span>: <span class="s">"everyone,"</span>, <span class="k">"conf"</span>: <span class="n">0.93</span>, <span class="k">"cluster"</span>: <span class="n">0</span>}
+{<span class="k">"start"</span>: <span class="n">12.388</span>, <span class="k">"end"</span>: <span class="n">13.063</span>, <span class="k">"text"</span>: <span class="s">"welcome"</span>,   <span class="k">"conf"</span>: <span class="n">0.93</span>, <span class="k">"cluster"</span>: <span class="n">0</span>}</pre>
+<p class="note">Saved as <code>*_asr.json</code>, so speakers can be re-decided later without paying for transcription again.</p>`,
+    },
+    {
+      name: "Line up clocks", sub: "offset + drift",
+      title: "Measure the gap between Forum's clock and the video's",
+      text: "Both sources are turned into a 'someone is talking' signal at 10 ms resolution. In 5-minute windows, Scribe slides one against the other (up to ±30 s) and keeps the best shift. A straight line through the windows gives the offset and any slow drift. A jump over 1.5 s means the recording restarted, and it fits each side separately.",
+      io: [["in", "Deepgram's words and Forum's voice events"], ["out", "offset, drift, agreement score, and a status: ok / piecewise / unverified"]],
+      why: "<b>Honest by design:</b> if agreement scores below 0.3, or the shift makes things worse, nothing is shifted and the transcript is marked \"timing unverified\" instead of guessing. Try the slider below.",
+      files: ["calibrate.py"],
+      show: () => `<div class="show-head"><span class="t">what calibration reported</span><span class="prov demo">demo</span></div>
+<pre class="code"><span class="k">"status"</span>: <span class="s">"ok"</span>,  <span class="k">"offset"</span>: <span class="n">0.8</span>,  <span class="k">"drift"</span>: <span class="n">0.0</span>,
+<span class="k">"score_before"</span>: <span class="n">0.836</span>  →  <span class="k">"score_after"</span>: <span class="n">0.902</span>,
+<span class="k">"method"</span>: <span class="s">"global"</span>   <span class="c">// demo too short for windows; a real class gets ~35</span></pre>
+<p class="note">The demo planted a 0.8 s offset; calibration recovered exactly 0.8 s.</p>`,
+    },
+    {
+      name: "Who said it", sub: "per word",
+      title: "Decide each word's speaker from two independent signals",
+      text: "Forum's log knows <i>who</i> (a name) but its edges are sloppy and a hot mic can pick up a neighbour. Deepgram's clusters know <i>which voice</i> with tight edges, but they're anonymous. Scribe matches each cluster to the person whose microphone it overlaps most (at least 40% of its talking), then labels every word and records how it decided.",
+      io: [["in", "calibrated voice events and clustered words"], ["out", "every word with a speaker and a <code>how</code> label"]],
+      why: "<b>Two small rules that help a lot:</b> 0.25 s of slack at Forum's edges, and a smoothing pass that fixes one-word flickers under 0.6 s at turn edges.",
+      files: ["fuse.py"],
+      show: () => `<div class="show-head"><span class="t">the voice-cluster → person map</span><span class="prov demo">demo</span></div>
+<pre class="code"><span class="k">"cluster_map"</span>: { <span class="s">"0"</span>: <span class="s">"1"</span>, <span class="s">"1"</span>: <span class="s">"2"</span>, <span class="s">"2"</span>: <span class="s">"3"</span>, <span class="s">"3"</span>: <span class="s">"4"</span> }
+<span class="c">// cluster 0 → Prof. Rivera (50.1 s of talk, 100% agreement)</span>
+<span class="c">// your turn: "attribution": { "forum+cluster": 1.0 }</span></pre>`,
+    },
+    {
+      name: "Turns", sub: "transcript v2",
+      title: "Group words into turns and build one timeline",
+      text: "Consecutive words with the same speaker become a turn, split when the speaker changes or after a pause over 1.2 s. Lesson segments become chapters, and each speaker gets talk time and a turn count. Chat and polls sit on the same timeline. Everything renders from this one object.",
+      io: [["in", "attributed words, segments, chat"], ["out", "<code>scribe.transcript/v2</code>"]],
+      why: "<b>Quality flags travel with it:</b> words under 0.6 confidence are marked, and every turn records how its speaker was decided, so the viewer can underline shaky words.",
+      files: ["turns.py", "schema.py", "pipeline.py"],
+      show: () => `<div class="show-head"><span class="t">your turn in the transcript</span><span class="prov demo">demo</span></div>
+<pre class="code">{ <span class="k">"start"</span>: <span class="n">39.8</span>, <span class="k">"end"</span>: <span class="n">52.7</span>, <span class="k">"speaker_id"</span>: <span class="s">"4"</span>,
+  <span class="k">"text"</span>: <span class="s">"I think it's the polynomial degree. In my pre-class
+          notebook the degree nine fit matched every training point…"</span>,
+  <span class="k">"confidence"</span>: <span class="n">0.93</span>, <span class="k">"attribution"</span>: { <span class="k">"forum+cluster"</span>: <span class="n">1.0</span> } }
+<span class="k">"speakers"</span>: { <span class="s">"4"</span>: { <span class="k">"role"</span>: <span class="s">"student"</span>, <span class="k">"is_me"</span>: <span class="n">true</span>, <span class="k">"talk_s"</span>: <span class="n">12.4</span>, <span class="k">"turns"</span>: <span class="n">1</span> } }</pre>`,
+    },
+    {
+      name: "Export", sub: "names or ids",
+      title: "Write it out in every format, with or without names",
+      text: "From the one transcript object, Scribe writes JSON, a one-row-per-turn JSONL dataset, CSV, Markdown, a searchable HTML page, PDF, and a debug timeline. In anonymised mode every speaker becomes a code and name fields are dropped. On Cue reads the anonymised JSON and the saved word file.",
+      io: [["in", "the transcript"], ["out", "<code>*_ids.json</code>, <code>*_asr.json</code>, <code>.jsonl</code>, <code>.csv</code>, <code>.md</code>, <code>.html</code>, <code>.pdf</code>"]],
+      why: "<b>Note:</b> anonymised mode hides <i>who</i> spoke, but names said aloud (\"Brady, go ahead\") stay in the text. On Cue masks those before saving anything.",
+      files: ["export/", "privacy.py"],
+      show: () => `<div class="show-head"><span class="t">one row of the anonymised JSONL</span><span class="prov demo">demo</span></div>
+<pre class="code">{<span class="k">"class_id"</span>: <span class="n">900001</span>, <span class="k">"start"</span>: <span class="n">39.8</span>, <span class="k">"end"</span>: <span class="n">52.72</span>,
+ <span class="k">"speaker_id"</span>: <span class="s">"u_b968d1136a"</span>, <span class="k">"speaker_role"</span>: <span class="s">"student"</span>, <span class="k">"is_me"</span>: <span class="n">true</span>,
+ <span class="k">"text"</span>: <span class="s">"I think it's the polynomial degree…"</span>,
+ <span class="k">"timeline_segment"</span>: <span class="s">"Warm-up discussion"</span>, <span class="k">"confidence"</span>: <span class="n">0.93</span>}</pre>`,
+    },
+  ];
+  const EDGES = ["bundle", "link", "words", "aligned", "speakers", "transcript"];
+
+  const NODE_W = 118, NODE_H = 64, GAP = 30, X0 = 18, Y = 30;
+  const nx = (i) => X0 + i * (NODE_W + GAP);
+  function buildDiagram() {
+    const parts = ['<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="dg-arrow" d="M0 0 L10 5 L0 10 z"/></marker><marker id="arr-on" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"/></marker></defs>'];
+    for (let i = 0; i < STAGES.length - 1; i++) {
+      const x1 = nx(i) + NODE_W, x2 = nx(i + 1) - 2, y = Y + NODE_H / 2;
+      parts.push(`<path class="dg-edge" data-edge="${i}" d="M ${x1} ${y} H ${x2}" marker-end="url(#arr)"/>`);
+      parts.push(`<text class="dg-label" data-edge-label="${i}" x="${x1 + GAP / 2}" y="${Y - 10}" text-anchor="middle">${EDGES[i]}</text>`);
+    }
+    STAGES.forEach((s, i) => {
+      const x = nx(i);
+      parts.push(`<g class="dg-node" data-i="${i}" role="button" tabindex="0" aria-label="Stage ${i + 1}: ${esc(s.name)}"><rect x="${x}" y="${Y}" width="${NODE_W}" height="${NODE_H}" rx="9"/><text class="dg-num" x="${x + 10}" y="${Y + 17}">${i + 1}</text><text class="dg-name" x="${x + 10}" y="${Y + 37}">${esc(s.name)}</text><text class="dg-sub" x="${x + 10}" y="${Y + 53}">${esc(s.sub)}</text></g>`);
+    });
+    const W = nx(STAGES.length - 1) + NODE_W + 18;
+    $("#diagram").innerHTML = `<svg viewBox="0 0 ${W} ${Y + NODE_H + 22}" role="img" aria-label="Seven stages: class bundle, recording link, transcribe, line up clocks, who said it, turns, export.">${parts.join("")}</svg>`;
+  }
+  let cur = 0;
+  function select(i, focus) {
+    cur = Math.max(0, Math.min(STAGES.length - 1, i));
+    const s = STAGES[cur];
+    document.querySelectorAll(".dg-node").forEach((n) => { const on = +n.dataset.i === cur; n.classList.toggle("on", on); n.setAttribute("aria-pressed", on ? "true" : "false"); });
+    document.querySelectorAll("[data-edge]").forEach((e) => { const on = +e.dataset.edge === cur - 1; e.classList.toggle("on", on); e.setAttribute("marker-end", on ? "url(#arr-on)" : "url(#arr)"); });
+    document.querySelectorAll("[data-edge-label]").forEach((e) => e.classList.toggle("on", +e.dataset.edgeLabel === cur - 1));
+    $("#where").innerHTML = `Stage <b>${cur + 1}</b> of ${STAGES.length} · <b>${esc(s.name)}</b>`;
+    $("#say").innerHTML = `<h3>${s.title}</h3><p>${s.text}</p><dl class="io">${s.io.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}<dt>code</dt><dd><span class="files">${s.files.map((f) => `<span class="file">${f}</span>`).join("")}</span></dd></dl><div class="why">${s.why}</div>`;
+    $("#show").innerHTML = s.show();
+    $("#prev").disabled = cur === 0;
+    $("#next").disabled = cur === STAGES.length - 1;
+    $("#next").textContent = cur === STAGES.length - 1 ? "Last stage" : "Next stage →";
+    if (focus) { const n = document.querySelector(`.dg-node[data-i="${cur}"]`); if (n) n.focus({ preventScroll: true }); }
+  }
+  buildDiagram();
+  document.querySelectorAll(".dg-node").forEach((n) => {
+    n.addEventListener("click", () => select(+n.dataset.i));
+    n.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(+n.dataset.i); } });
+  });
+  $("#prev").addEventListener("click", () => select(cur - 1));
+  $("#next").addEventListener("click", () => select(cur + 1));
+  $("#explorer").addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight") { e.preventDefault(); select(cur + 1, true); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); select(cur - 1, true); }
+  });
+  select(0);
+
+  /* ------------------------------------------------ clock alignment: demo turns, audio 0.8 s ahead */
+  const TURNS = [[10.0, 23.5], [24.5, 31.0], [36.0, 37.6], [39.0, 52.0], [53.0, 58.0], [59.0, 70.0], [70.5, 71.2], [72.0, 85.0], [96.0, 118.0], [119.0, 131.0]];
+  const OFFSET = 0.8;
+  const forum = [];                        // Forum splits speech into ~3 s fragments with 0.15 s gaps
+  TURNS.forEach(([s, e]) => { let t = s; while (t < e) { const d = Math.min(e - t, 3.0); forum.push([t, t + d]); t += d + 0.15; } });
+  const asr = TURNS.map(([s, e]) => [s + OFFSET, e + OFFSET]);
+  function overlap(shift) {
+    let tot = 0;
+    forum.forEach(([a, b]) => asr.forEach(([c, d]) => { tot += Math.max(0, Math.min(b + shift, d) - Math.max(a + shift, c)); }));
+    return tot;
+  }
+  const speechTotal = asr.reduce((a, [s, e]) => a + (e - s), 0);
+  const curve = [];
+  for (let k = -30; k <= 30; k++) curve.push([k / 10, overlap(k / 10) / speechTotal]);
+  const best = curve.reduce((m, p) => (p[1] > m[1] ? p : m), curve[0]);
+
+  function drawAlign() {
+    const sh = +$("#shift").value;
+    $("#shift-out").textContent = (sh >= 0 ? "+" : "") + sh.toFixed(1) + " s";
+    const T0 = 34, T1 = 60, W = 1000, padL = 90, padR = 20;
+    const X = (t) => padL + ((t - T0) / (T1 - T0)) * (W - padL - padR);
+    const parts = [];
+    const clip = ([a, b]) => [Math.max(a, T0), Math.min(b, T1)];
+    parts.push(`<text class="lbl" x="0" y="30">Forum log</text><text class="lbl" x="0" y="64">Deepgram</text><text class="lbl" x="0" y="98">overlap</text>`);
+    forum.forEach(([a, b]) => { const [s, e] = clip([a + sh, b + sh]); if (e > s) parts.push(`<rect class="lane-f" x="${X(s)}" y="18" width="${X(e) - X(s)}" height="18" rx="2"/>`); });
+    asr.forEach(([a, b]) => { const [s, e] = clip([a, b]); if (e > s) parts.push(`<rect class="lane-a" x="${X(s)}" y="52" width="${X(e) - X(s)}" height="18" rx="2"/>`); });
+    forum.forEach(([a, b]) => asr.forEach(([c, d]) => { const s = Math.max(a + sh, c, T0), e = Math.min(b + sh, d, T1); if (e > s) parts.push(`<rect class="overlap" x="${X(s)}" y="86" width="${X(e) - X(s)}" height="14" rx="2"/>`); }));
+    for (let t = 35; t <= 60; t += 5) parts.push(`<text class="tick" x="${X(t)}" y="122" text-anchor="middle">${t} s</text>`);
+    // score curve
+    const cx0 = padL, cx1 = W - padR, cy0 = 150, cy1 = 230;
+    const CX = (s) => cx0 + ((s + 3) / 6) * (cx1 - cx0);
+    const lo = Math.min(...curve.map((p) => p[1])), hi = best[1];
+    const CY = (v) => cy1 - ((v - lo) / (hi - lo || 1)) * (cy1 - cy0);
+    parts.push(`<text class="lbl" x="0" y="${(cy0 + cy1) / 2}">agreement</text>`);
+    parts.push(`<line class="ax" x1="${cx0}" y1="${cy1}" x2="${cx1}" y2="${cy1}"/>`);
+    parts.push(`<path class="curve" d="${curve.map(([s, v], i) => (i ? "L" : "M") + CX(s).toFixed(1) + " " + CY(v).toFixed(1)).join(" ")}"/>`);
+    parts.push(`<circle class="peak" cx="${CX(best[0])}" cy="${CY(best[1])}" r="5"/>`);
+    parts.push(`<line class="cursor" x1="${CX(sh)}" y1="${cy0 - 6}" x2="${CX(sh)}" y2="${cy1}"/>`);
+    [-3, -2, -1, 0, 1, 2, 3].forEach((s) => parts.push(`<text class="tick" x="${CX(s)}" y="${cy1 + 16}" text-anchor="middle">${s > 0 ? "+" : ""}${s} s</text>`));
+    $("#align-chart").innerHTML = `<svg viewBox="0 0 ${W} 256" role="img" aria-label="Forum microphone activity against Deepgram speech for seconds 34 to 60, and an agreement curve over shifts from minus 3 to plus 3 seconds, peaking at plus ${best[0].toFixed(1)} seconds.">${parts.join("")}</svg>`;
+    const score = overlap(sh) / speechTotal;
+    $("#align-readout").innerHTML = `At a shift of <b>${(sh >= 0 ? "+" : "") + sh.toFixed(1)} s</b>, the two clocks agree on <b>${Math.round(score * 100)}%</b> of the speech. The best shift is <b>+${best[0].toFixed(1)} s</b> (green dot), the 0.8 s the demo planted. ${Math.abs(sh - best[0]) < 0.05 ? "You found it." : "Slide to the peak."}`;
+  }
+  $("#shift").addEventListener("input", drawAlign);
+  drawAlign();
+})();
+</script>
